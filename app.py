@@ -202,7 +202,8 @@ elif page == "About":
 # ============================
 elif page == "Profile":
     st.title("Profile")
-    st.write("Vivian Iyaha - HR Analytics & AI Enthusiast")st.sidebar.title("Navigation")
+    st.write("Vivian Iyaha - HR Analytics & AI Enthusiast")
+    st.sidebar.title("Navigation")
 page = st.sidebar.radio("Go to", ["Dashboard", "Predictor", "About", "Profile"])
 
 
