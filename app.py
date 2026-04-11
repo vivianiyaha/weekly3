@@ -265,7 +265,6 @@ st.dataframe(styled_df)
 # PREDICTOR PAGE
 # ============================
 elif page == 'Predictor':
-
     st.title('HR KPI Predictor')
 
     st.header('Enter Employee Details:')
