@@ -361,6 +361,36 @@ page = st.sidebar.radio('Go to', ['Dashboard', 'Predictor', 'About', 'Profile'])
 
 
 # ============================
+# DASHBOARD
+# ============================
+if page == 'Dashboard':
+    st.title('HR KPI Dashboard')
+    st.write("Dashboard here")
+
+
+# ============================
+# PREDICTOR
+# ============================
+elif page == 'Predictor':
+    st.title('HR KPI Predictor')
+    st.write("Predictor here")
+
+
+# ============================
+# ABOUT
+# ============================
+elif page == 'About':
+    st.title('About')
+
+
+# ============================
+# PROFILE
+# ============================
+elif page == 'Profile':
+    st.title('Profile')
+
+
+# ============================
 # DASHBOARD PAGE
 # ============================
 if page == 'Dashboard':
