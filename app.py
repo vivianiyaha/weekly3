@@ -15,7 +15,7 @@ st.set_page_config(page_title="HR KPI Dashboard", layout="wide")
 df = pd.read_csv("hrkpidata.csv")
 
 # Add Serial Number
-df.insert(1, "S/N", range(1, len(df) + 1))
+df.insert(1, range(1, len(df) + 1))
 
 
 # ============================
