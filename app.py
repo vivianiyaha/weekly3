@@ -43,7 +43,7 @@ df['KPI Score'] = (
 
 
 # ============================
-# FEATURES & TARGETS
+# FEATURES & MODELS
 # ============================
 X = df[['Gender', 'Department', 'Engagement Score',
         'Attendance (%)', 'Number of Training',
@@ -53,10 +53,6 @@ X = df[['Gender', 'Department', 'Engagement Score',
 y_attrition = df['Attrition']
 y_performance = df['Performance Rating']
 
-
-# ============================
-# TRAIN MODELS
-# ============================
 X_train, X_test, y_train_attr, y_test_attr = train_test_split(
     X, y_attrition, test_size=0.2, random_state=42
 )
@@ -73,95 +69,89 @@ perf_model.fit(X_train2, y_train_perf)
 
 
 # ============================
-# SIDEBAR NAVIGATION (FIXED)
+# NAVIGATION (ONLY ONCE)
 # ============================
-st.sidebar.title('Navigation')
-page = st.sidebar.radio('Go to', ['Dashboard', 'Predictor', 'About', 'Profile'])
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Go to", ["Dashboard", "Predictor", "About", "Profile"])
 
 
 # ============================
 # DASHBOARD
 # ============================
-if page == 'Dashboard':
+if page == "Dashboard":
 
-    st.title('HR KPI Dashboard')
+    st.title("HR KPI Dashboard")
 
     col1, col2, col3 = st.columns(3)
 
-    col1.metric("Avg KPI Score", round(df['KPI Score'].mean(), 2))
+    col1.metric("Avg KPI Score", round(df["KPI Score"].mean(), 2))
     col2.metric("Attrition Rate", f"{df['Attrition'].mean() * 100:.1f}%")
-    col3.metric("Avg Performance", round(df['Performance Rating'].mean(), 2))
+    col3.metric("Avg Performance", round(df["Performance Rating"].mean(), 2))
 
     st.subheader("Visual Insights")
+    st.bar_chart(df["Attrition"].value_counts())
+    st.bar_chart(df["Department"].value_counts())
+    st.line_chart(df["KPI Score"])
 
-    st.bar_chart(df['Attrition'].value_counts())
-    st.bar_chart(df['Department'].value_counts())
-    st.line_chart(df['KPI Score'])
-
-    # Search
     st.subheader("Employee Dataset")
 
     search = st.text_input("🔍 Search Employee Name")
 
     if search:
-        filtered_df = df[df['Employee Name'].str.contains(search, case=False)]
+        filtered_df = df[df["Employee Name"].str.contains(search, case=False)]
     else:
         filtered_df = df
 
-    # Convert attrition label
     display_df = filtered_df.copy()
-    display_df['Attrition'] = display_df['Attrition'].map({1: 'High Risk', 0: 'Low Risk'})
+    display_df["Attrition"] = display_df["Attrition"].map({1: "High Risk", 0: "Low Risk"})
 
-    # Highlight function
-    def highlight(row):
-        return ['background-color: red' if v == 'High Risk' else 'background-color: green'
-                for v in row]
+    def highlight(val):
+        return "background-color: red; color: white" if val == "High Risk" else "background-color: green; color: white"
 
-    st.dataframe(display_df.style.apply(highlight, subset=['Attrition']))
+    st.dataframe(display_df.style.map(highlight, subset=["Attrition"]))
 
 
 # ============================
 # PREDICTOR
 # ============================
-elif page == 'Predictor':
+elif page == "Predictor":
 
-    st.title('HR KPI Predictor')
-    st.header('Enter Employee Details')
+    st.title("HR KPI Predictor")
 
-    gender = st.selectbox('Gender', ['Male', 'Female'])
-    gender = 1 if gender == 'Male' else 0
+    gender = st.selectbox("Gender", ["Male", "Female"])
+    gender = 1 if gender == "Male" else 0
 
     department = st.selectbox(
-        'Department',
-        ['HR', 'IT', 'Finance', 'Sales', 'Marketing', 'Operations']
+        "Department",
+        ["HR", "IT", "Finance", "Sales", "Marketing", "Operations"]
     )
     department = {
-        'HR': 0, 'IT': 1, 'Finance': 2,
-        'Sales': 3, 'Marketing': 4, 'Operations': 5
+        "HR": 0, "IT": 1, "Finance": 2,
+        "Sales": 3, "Marketing": 4, "Operations": 5
     }[department]
 
-    engagement = st.slider('Engagement Score', 50, 100, 75)
-    attendance = st.slider('Attendance (%)', 80, 100, 95)
-    training = st.selectbox('Number of Training', [0, 1, 2, 3, 4, 5])
+    engagement = st.slider("Engagement Score", 50, 100, 75)
+    attendance = st.slider("Attendance (%)", 80, 100, 95)
+    training = st.selectbox("Number of Training", [0, 1, 2, 3, 4, 5])
 
-    experience = st.number_input('Total Experience', 0, 15, 5)
-    years_company = st.number_input('Years at Company', 0, 10, 3)
+    experience = st.number_input("Total Experience", 0, 15, 5)
+    years_company = st.number_input("Years at Company", 0, 10, 3)
 
-    promotion = st.selectbox('Promotion History', ['Yes', 'No'])
-    promotion = 1 if promotion == 'Yes' else 0
+    promotion = st.selectbox("Promotion History", ["Yes", "No"])
+    promotion = 1 if promotion == "Yes" else 0
 
     input_data = pd.DataFrame({
-        'Gender': [gender],
-        'Department': [department],
-        'Engagement Score': [engagement],
-        'Attendance (%)': [attendance],
-        'Number of Training': [training],
-        'Total Experience': [experience],
-        'Years at Company': [years_company],
-        'Promotion History': [promotion]
+        "Gender": [gender],
+        "Department": [department],
+        "Engagement Score": [engagement],
+        "Attendance (%)": [attendance],
+        "Number of Training": [training],
+        "Total Experience": [experience],
+        "Years at Company": [years_company],
+        "Promotion History": [promotion]
     })
 
-    if st.button('Predict'):
+    if st.button("Predict"):
 
         attr_pred = attr_model.predict(input_data)
         perf_pred = perf_model.predict(input_data)
@@ -187,336 +177,15 @@ elif page == 'Predictor':
 # ============================
 # ABOUT
 # ============================
-elif page == 'About':
-
-    st.title('About This App')
-    st.write("HR KPI Machine Learning Dashboard")
-    st.write("Predicts Attrition, Performance, and KPI Score")
-
-
-# ============================
-# PROFILE
-# ============================
-elif page == 'Profile':
-
-    st.title('Profile')
-
-    st.write('Vivian Iyaha is a Management graduate with interest in HR Analytics and AI.')
-
-    st.write('LinkedIn:')
-    st.write('https://www.linkedin.com/in/vivian-i-556499126/')
-attr_model.fit(X_train, y_train_attr)
-perf_model.fit(X_train2, y_train_perf)
-
-
-# ============================
-# SIDEBAR NAVIGATION
-# ============================
-st.sidebar.title('Navigation')
-page = st.sidebar.radio('Go to', ['Dashboard', 'Predictor', 'About', 'Profile'])
-
-
-# ============================
-# DASHBOARD PAGE
-# ============================
-if page == 'Dashboard':
-    st.title('HR KPI Dashboard')
-
-    col1, col2, col3 = st.columns(3)
-
-    col1.metric("Average KPI Score", round(df['KPI Score'].mean(), 2))
-    col2.metric("Attrition Rate", f"{df['Attrition'].mean() * 100:.1f}%")
-    col3.metric("Average Performance", round(df['Performance Rating'].mean(), 2))
-
-    st.subheader("Visual Insights")
-
-    st.write("Attrition Distribution")
-    st.bar_chart(df['Attrition'].value_counts())
-
-    st.write("Employees by Department")
-    st.bar_chart(df['Department'].value_counts())
-
-    st.write("KPI Score Trend")
-    st.line_chart(df['KPI Score'])
-
-    # ============================
-    # SEARCH FUNCTION
-    # ============================
-    st.subheader("Dataset Preview")
-
-    search = st.text_input("🔍 Search Employee Name")
-
-    if search:
-        filtered_df = df[df['Employee Name'].str.contains(search, case=False)]
-    else:
-        filtered_df = df
-
-    # Make Attrition readable
-    display_df = filtered_df.copy()
-    display_df['Attrition'] = display_df['Attrition'].map({1: 'High Risk', 0: 'Low Risk'})
-
-    # Highlight function
-    def highlight_attrition(val):
-        if val == 'High Risk':
-            return 'background-color: red; color: white'
-        else:
-            return 'background-color: green; color: white'
-
-    styled_df = display_df.style.map(highlight_attrition, subset=['Attrition'])
-
-    st.dataframe(styled_df)
-
-
-# ============================
-# PREDICTOR PAGE
-# ============================
-elif page == 'Predictor':
-
-    st.title('HR KPI Predictor')
-    st.header('Enter Employee Details:')
-
-    gender = st.selectbox('Gender', ['Male', 'Female'])
-    gender = 1 if gender == 'Male' else 0
-
-    department = st.selectbox(
-        'Department',
-        ['HR', 'IT', 'Finance', 'Sales', 'Marketing', 'Operations']
-    )
-    department = {
-        'HR': 0, 'IT': 1, 'Finance': 2,
-        'Sales': 3, 'Marketing': 4, 'Operations': 5
-    }[department]
-
-    engagement = st.slider('Engagement Score', 50, 100, 75)
-    attendance = st.slider('Attendance (%)', 80, 100, 95)
-    training = st.selectbox('Number of Training', [0, 1, 2, 3, 4, 5])
-
-    experience = st.number_input('Total Experience', 0, 15, 5)
-    years_company = st.number_input('Years at Company', 0, 10, 3)
-
-    promotion = st.selectbox('Promotion History', ['Yes', 'No'])
-    promotion = 1 if promotion == 'Yes' else 0
-
-    input_data = pd.DataFrame({
-        'Gender': [gender],
-        'Department': [department],
-        'Engagement Score': [engagement],
-        'Attendance (%)': [attendance],
-        'Number of Training': [training],
-        'Total Experience': [experience],
-        'Years at Company': [years_company],
-        'Promotion History': [promotion]
-    })
-
-    if st.button('Predict'):
-
-        attr_pred = attr_model.predict(input_data)
-        perf_pred = perf_model.predict(input_data)
-
-        kpi_score = (
-            perf_pred[0] * 0.4 +
-            engagement * 0.3 +
-            attendance * 0.2 +
-            training * 0.1
-        )
-
-        st.subheader("Results")
-
-        if attr_pred[0] == 1:
-            st.error("⚠️ High Attrition Risk")
-        else:
-            st.success("✅ Low Attrition Risk")
-
-        st.info(f"⭐ Predicted Performance Rating: {perf_pred[0]}")
-        st.metric("📊 KPI Score", round(kpi_score, 2))
-
-
-# ============================
-# ABOUT PAGE
-# ============================
-elif page == 'About':
-    st.title('About')
-    st.write('This HR KPI App predicts:')
-    st.write('- Employee Attrition Risk')
-    st.write('- Performance Rating')
-    st.write('- KPI Score')
-
-
-# ============================
-# PROFILE PAGE
-# ============================
-elif page == 'Profile':
-    st.title('Profile')
-
-    st.write('Vivian Iyaha is a Management graduate with strong interest in HR Analytics and Machine Learning.')
-
-    st.write('Connect on LinkedIn:')
-    st.write('https://www.linkedin.com/in/vivian-i-556499126/')
-
-# ============================
-# SIDEBAR NAVIGATION
-# ============================
-st.sidebar.title('Navigation')
-page = st.sidebar.radio('Go to', ['Dashboard', 'Predictor', 'About', 'Profile'])
-
-
-# ============================
-# DASHBOARD
-# ============================
-if page == 'Dashboard':
-    st.title('HR KPI Dashboard')
-    st.write("Dashboard here")
-
-
-# ============================
-# PREDICTOR
-# ============================
-elif page == 'Predictor':
-    st.title('HR KPI Predictor')
-    st.write("Predictor here")
-
-
-# ============================
-# ABOUT
-# ============================
-elif page == 'About':
-    st.title('About')
+elif page == "About":
+    st.title("About")
+    st.write("HR KPI Machine Learning App")
+    st.write("Predicts Attrition, Performance, KPI Score")
 
 
 # ============================
 # PROFILE
 # ============================
-elif page == 'Profile':
-    st.title('Profile')
-
-
-# ============================
-# DASHBOARD PAGE
-# ============================
-if page == 'Dashboard':
-    st.title('HR KPI Dashboard')
-
-    col1, col2, col3 = st.columns(3)
-
-    col1.metric("Average KPI Score", round(df['KPI Score'].mean(), 2))
-    col2.metric("Attrition Rate", f"{df['Attrition'].mean() * 100:.1f}%")
-    col3.metric("Average Performance", round(df['Performance Rating'].mean(), 2))
-
-
-    st.subheader("Dataset Preview")
-
-# Search box
-search = st.text_input("🔍 Search Employee Name")
-
-if search:
-    filtered_df = df[df['Employee Name'].str.contains(search, case=False)]
-else:
-    filtered_df = df
-
-def highlight_attrition(val):
-    if val == 1:
-        return 'background-color: red; color: white'
-    else:
-        return 'background-color: green; color: white'
-
-styled_df = filtered_df.style.applymap(highlight_attrition, subset=['Attrition'])
-
-st.dataframe(styled_df)
-
-
-# ============================
-# PREDICTOR PAGE
-# ============================
-elif page == 'Predictor':
-    st.title('HR KPI Predictor')
-
-    st.header('Enter Employee Details:')
-
-    # Inputs
-    gender = st.selectbox('Gender', ['Male', 'Female'])
-    gender = 1 if gender == 'Male' else 0
-
-    department = st.selectbox(
-        'Department',
-        ['HR', 'IT', 'Finance', 'Sales', 'Marketing', 'Operations']
-    )
-    department = {
-        'HR': 0, 'IT': 1, 'Finance': 2,
-        'Sales': 3, 'Marketing': 4, 'Operations': 5
-    }[department]
-
-    engagement = st.slider('Engagement Score', 50, 100, 75)
-    attendance = st.slider('Attendance (%)', 80, 100, 95)
-    training = st.selectbox('Number of Training', [0, 1, 2, 3, 4, 5])
-
-    experience = st.number_input('Total Experience', 0, 15, 5)
-    years_company = st.number_input('Years at Company', 0, 10, 3)
-
-    promotion = st.selectbox('Promotion History', ['Yes', 'No'])
-    promotion = 1 if promotion == 'Yes' else 0
-
-    # Input dataframe
-    input_data = pd.DataFrame({
-        'Gender': [gender],
-        'Department': [department],
-        'Engagement Score': [engagement],
-        'Attendance (%)': [attendance],
-        'Number of Training': [training],
-        'Total Experience': [experience],
-        'Years at Company': [years_company],
-        'Promotion History': [promotion]
-    })
-
-    # Prediction
-    if st.button('Predict'):
-
-        attr_pred = attr_model.predict(input_data)
-        perf_pred = perf_model.predict(input_data)
-
-        # KPI Score
-        kpi_score = (
-            perf_pred[0] * 0.4 +
-            engagement * 0.3 +
-            attendance * 0.2 +
-            training * 0.1
-        )
-
-        st.subheader("Results")
-
-        # Attrition Result
-        if attr_pred[0] == 1:
-            st.error("⚠️ High Attrition Risk")
-        else:
-            st.success("✅ Low Attrition Risk")
-
-        # Performance
-        st.info(f"⭐ Predicted Performance Rating: {perf_pred[0]}")
-
-        # KPI Score
-        st.metric("📊 KPI Score", round(kpi_score, 2))
-
-
-# ============================
-# ABOUT PAGE
-# ============================
-elif page == 'About':
-    st.title('About')
-    st.write('This HR KPI App predicts:')
-    st.write('- Employee Attrition Risk')
-    st.write('- Performance Rating')
-    st.write('- KPI Score')
-    st.write('It helps HR teams make data-driven decisions.')
-
-
-# ============================
-# PROFILE PAGE
-# ============================
-elif page == 'Profile':
-    st.title('Profile')
-
-    st.write('Vivian Iyaha is a Management graduate with strong interest in HR Analytics, Machine Learning, and Artificial Intelligence.')
-
-    st.write('She is passionate about using data to improve employee performance, reduce attrition, and drive organizational success.')
-
-    st.write('Connect on LinkedIn:')
-    st.write('https://www.linkedin.com/in/vivian-i-556499126/')
+elif page == "Profile":
+    st.title("Profile")
+    st.write("Vivian Iyaha - HR Analytics & AI Enthusiast")
