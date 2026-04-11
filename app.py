@@ -15,7 +15,7 @@ st.set_page_config(page_title="HR KPI Dashboard", layout="wide")
 df = pd.read_csv("hrkpidata.csv")
 
 # Add Serial Number
-df.insert(1, range(1, len(df) + 1))
+df.index = range(1, len(df) + 1)
 
 
 # ============================
@@ -103,23 +103,6 @@ page = st.sidebar.radio(
 # ============================
 if page == "Dashboard":
 
-    st.title("📊 HR KPI Dashboard")
-
-    col1, col2, col3 = st.columns(3)
-
-    col1.metric("Avg KPI Score", round(df["KPI Score"].mean(), 2))
-    col2.metric("Attrition Rate", f"{df['Attrition'].mean() * 100:.1f}%")
-    col3.metric("Avg Performance", round(df["Performance Rating"].mean(), 2))
-
-    st.divider()
-
-    st.subheader("Visual Insights")
-    st.bar_chart(df["Attrition"].value_counts())
-    st.bar_chart(df["Department"].value_counts())
-    st.line_chart(df["KPI Score"])
-
-    st.divider()
-
     st.subheader("Employee Search")
 
     search = st.text_input("Search Employee Name")
@@ -133,6 +116,23 @@ if page == "Dashboard":
     display_df["Attrition Status"] = display_df["Attrition"].map({1: "High Risk", 0: "Low Risk"})
 
     st.dataframe(display_df)
+
+    st.divider()
+
+st.title("📊 HR KPI Dashboard")
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("Avg KPI Score", round(df["KPI Score"].mean(), 2))
+    col2.metric("Attrition Rate", f"{df['Attrition'].mean() * 100:.1f}%")
+    col3.metric("Avg Performance", round(df["Performance Rating"].mean(), 2))
+
+    st.divider()
+
+    st.subheader("Visual Insights")
+    st.bar_chart(df["Attrition"].value_counts())
+    st.bar_chart(df["Department"].value_counts())
+    st.line_chart(df["KPI Score"])
 
 
 # ============================
