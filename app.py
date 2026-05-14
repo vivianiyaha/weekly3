@@ -1,208 +1,425 @@
 import streamlit as st
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+import numpy as np
+import os
+from pathlib import Path
+from datetime import datetime
+import plotly.express as px
 
-# ============================
+# =========================================================
 # PAGE CONFIG
-# ============================
-st.set_page_config(page_title="HR KPI Dashboard", layout="wide")
+# =========================================================
 
-# ============================
-# LOAD DATA
-# ============================
-df = pd.read_csv("hrkpidata.csv")
-df.index = range(1, len(df) + 1)
+st.set_page_config(
+    page_title="Employee KPI Dashboard",
+    page_icon="📊",
+    layout="wide"
+)
 
-# ============================
-# MAPPINGS (CONSISTENT)
-# ============================
-gender_map = {"Male": 1, "Female": 0}
-promotion_map = {"Yes": 1, "No": 0}
-department_map = {
-    "HR": 0,
-    "IT": 1,
-    "Finance": 2,
-    "Sales": 3,
-    "Marketing": 4,
-    "Operations": 5
+# =========================================================
+# CUSTOM CSS
+# =========================================================
+
+st.markdown("""
+<style>
+
+.main {
+    background-color: #f8f9fc;
 }
 
-df["Gender"] = df["Gender"].map(gender_map)
-df["Promotion History"] = df["Promotion History"].map(promotion_map)
-df["Department"] = df["Department"].map(department_map)
+.stButton>button {
+    background-color: #0d6efd;
+    color: white;
+    border-radius: 8px;
+    border: none;
+    padding: 0.6rem 1rem;
+    font-weight: 600;
+}
 
-df = df.fillna(0)
+div[data-testid="metric-container"] {
+    background-color: white;
+    border: 1px solid #e6e6e6;
+    padding: 15px;
+    border-radius: 10px;
+}
 
-# ============================
-# KPI SCORE (BASELINE)
-# ============================
-df["KPI Score"] = (
-    df["Performance Rating"] * 0.4 +
-    df["Engagement Score"] * 0.3 +
-    df["Attendance (%)"] * 0.2 +
-    df["Number of Training"] * 0.1
-)
+</style>
+""", unsafe_allow_html=True)
 
-# ============================
-# FEATURES / TARGETS
-# ============================
-features = [
-    "Gender",
+# =========================================================
+# TITLE
+# =========================================================
+
+st.title("📊 Employee KPI Performance Dashboard")
+st.markdown("Professional KPI monitoring and analytics system")
+
+# =========================================================
+# STORAGE FOLDER
+# =========================================================
+
+BASE_DIR = "performance_data"
+Path(BASE_DIR).mkdir(exist_ok=True)
+
+# =========================================================
+# REQUIRED COLUMNS
+# =========================================================
+
+required_columns = [
+    "Name",
+    "Employment Status",
+    "Designation",
     "Department",
-    "Engagement Score",
-    "Attendance (%)",
-    "Number of Training",
-    "Total Experience",
-    "Years at Company",
-    "Promotion History"
+    "KPI 1 (Write out the KPI)",
+    "Was KPI 1 completed?",
+    "KPI 2 (Write out the KPI)",
+    "Was KPI 2 completed?",
+    "KPI 3 (Write out the kpi)",
+    "Was KPI 3 completed?",
+    "Challenges faced during the week"
 ]
 
-X = df[features]
-y_attrition = df["Attrition"]
-y_performance = df["Performance Rating"]
+# =========================================================
+# HELPER FUNCTIONS
+# =========================================================
 
-# ============================
-# TRAIN TEST SPLIT (FIXED CONSISTENCY)
-# ============================
-X_train, X_test, y_train_attr, y_test_attr = train_test_split(
-    X, y_attrition, test_size=0.2, random_state=42
-)
+def calculate_score(row):
+    score = 0
+    total = 3
 
-X_train2, X_test2, y_train_perf, y_test_perf = train_test_split(
-    X, y_performance, test_size=0.2, random_state=42
-)
+    kpi1 = str(row["Was KPI 1 completed?"]).strip().lower()
+    kpi2 = str(row["Was KPI 2 completed?"]).strip().lower()
+    kpi3 = str(row["Was KPI 3 completed?"]).strip().lower()
 
-# ============================
-# MODELS
-# ============================
-attr_model = RandomForestClassifier(random_state=42)
-perf_model = RandomForestClassifier(random_state=42)
+    if kpi1 in ["yes", "true", "completed"]:
+        score += 1
 
-attr_model.fit(X_train, y_train_attr)
-perf_model.fit(X_train2, y_train_perf)
+    if kpi2 in ["yes", "true", "completed"]:
+        score += 1
 
-# ============================
-# SIDEBAR NAVIGATION
-# ============================
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Dashboard", "Predictor", "About", "Profile"])
+    if kpi3 in ["yes", "true", "completed"]:
+        score += 1
 
-# ============================
-# DASHBOARD
-# ============================
-if page == "Dashboard":
+    return round((score / total) * 100, 2)
 
-    st.title("📊 HR KPI Dashboard")
 
-    st.subheader("Employee Search")
-    search = st.text_input("Search Employee Name")
-
-    if search:
-        filtered_df = df[df["Employee Name"].str.contains(search, case=False, na=False)]
+def performance_category(score):
+    if score >= 80:
+        return "High Performer"
+    elif score < 50:
+        return "Low Performer"
     else:
-        filtered_df = df
+        return "Average Performer"
 
-    display_df = filtered_df.copy()
-    display_df["Attrition Status"] = display_df["Attrition"].map({1: "High Risk", 0: "Low Risk"})
 
-    st.dataframe(display_df)
+def save_uploaded_file(df, filename):
+    now = datetime.now()
 
-    st.divider()
+    month_folder = now.strftime("%Y-%m")
+    month_path = os.path.join(BASE_DIR, month_folder)
 
-    col1, col2, col3 = st.columns(3)
+    Path(month_path).mkdir(parents=True, exist_ok=True)
 
-    col1.metric("Avg KPI Score", round(df["KPI Score"].mean(), 2))
-    col2.metric("Attrition Rate", f"{df['Attrition'].mean() * 100:.1f}%")
-    col3.metric("Avg Performance", round(df["Performance Rating"].mean(), 2))
+    save_path = os.path.join(month_path, filename)
 
-    st.divider()
+    df.to_csv(save_path, index=False)
 
-    st.subheader("Visual Insights")
-    st.bar_chart(df["Attrition"].value_counts())
-    st.bar_chart(df["Department"].value_counts())
-    st.line_chart(df["KPI Score"])
+    return save_path
 
-# ============================
-# PREDICTOR
-# ============================
-elif page == "Predictor":
 
-    st.title("🎯 HR KPI Predictor")
+def load_all_data():
+    all_data = []
 
-    employee_name = st.selectbox("Select Employee", df["Employee Name"].unique())
-    emp = df[df["Employee Name"] == employee_name].iloc[0]
+    for root, dirs, files in os.walk(BASE_DIR):
+        for file in files:
+            if file.endswith(".csv"):
+                file_path = os.path.join(root, file)
 
-    st.subheader("Employee Profile")
-    st.write(f"Department: {employee_name}")
-    st.write(f"Experience: {emp['Total Experience']} years")
-    st.write(f"Years at Company: {emp['Years at Company']}")
+                temp_df = pd.read_csv(file_path)
+                all_data.append(temp_df)
 
-    st.divider()
+    if all_data:
+        return pd.concat(all_data, ignore_index=True)
 
-    st.subheader("Prediction Inputs")
+    return pd.DataFrame()
 
-    gender = st.selectbox("Gender", list(gender_map.keys()), index=int(emp["Gender"]))
-    gender = gender_map[gender]
+# =========================================================
+# SIDEBAR
+# =========================================================
 
-    department = st.selectbox("Department", list(department_map.keys()), index=int(emp["Department"]))
-    department = department_map[department]
+st.sidebar.header("📁 Weekly KPI Report")
 
-    engagement = st.slider("Engagement Score", 50, 100, int(emp["Engagement Score"]))
-    attendance = st.slider("Attendance (%)", 80, 100, int(emp["Attendance (%)"]))
-    training = st.selectbox("Number of Training", [0, 1, 2, 3, 4, 5], index=int(emp["Number of Training"]))
+load_file = st.sidebar.button("Open weeklyKpi.csv")
 
-    experience = st.number_input("Total Experience", 0, 40, int(emp["Total Experience"]))
-    years_company = st.number_input("Years at Company", 0, 40, int(emp["Years at Company"]))
+# =========================================================
+# FILE LOAD PROCESSING
+# =========================================================
 
-    promotion = st.selectbox("Promotion History", list(promotion_map.keys()), index=int(emp["Promotion History"]))
-    promotion = promotion_map[promotion]
+if load_file:
 
-    input_data = pd.DataFrame([{
-        "Gender": gender,
-        "Department": department,
-        "Engagement Score": engagement,
-        "Attendance (%)": attendance,
-        "Number of Training": training,
-        "Total Experience": experience,
-        "Years at Company": years_company,
-        "Promotion History": promotion
-    }])
+    try:
+        file_path = "weeklyKpi.csv"
 
-    if st.button("Predict"):
+        if os.path.exists(file_path):
 
-        attr_pred = attr_model.predict(input_data)[0]
-        perf_pred = perf_model.predict(input_data)[0]
+            df = pd.read_csv(file_path)
 
-        kpi_score = (
-            perf_pred * 0.4 +
-            engagement * 0.3 +
-            attendance * 0.2 +
-            training * 0.1
+            # Validate columns
+            missing_cols = [
+                col for col in required_columns
+                if col not in df.columns
+            ]
+
+            if missing_cols:
+                st.error(f"Missing columns: {missing_cols}")
+
+            else:
+                now = datetime.now()
+
+                # Add date columns
+                df["Month"] = now.strftime("%Y-%m")
+                df["Week"] = "weeklyKpi"
+                df["Upload Date"] = now.strftime("%Y-%m-%d")
+
+                # KPI Score
+                df["KPI Score"] = df.apply(
+                    calculate_score,
+                    axis=1
+                )
+
+                # Performance Category
+                df["Performance Category"] = df[
+                    "KPI Score"
+                ].apply(performance_category)
+
+                # Save file
+                save_path = save_uploaded_file(
+                    df,
+                    "weeklyKpi.csv"
+                )
+
+                st.success(
+                    "weeklyKpi.csv loaded successfully ✅"
+                )
+
+                st.info(f"Saved to: {save_path}")
+
+                st.dataframe(
+                    df,
+                    use_container_width=True
+                )
+
+        else:
+            st.error("weeklyKpi.csv file not found.")
+
+    except Exception as e:
+        st.error(f"Error: {e}")
+
+# =========================================================
+# LOAD ALL SAVED DATA
+# =========================================================
+
+data = load_all_data()
+
+# =========================================================
+# DASHBOARD
+# =========================================================
+
+if not data.empty:
+
+    st.markdown("---")
+    st.header("📈 Manager Dashboard")
+
+    # Metrics
+    total_employees = data["Name"].nunique()
+
+    avg_score = round(
+        data["KPI Score"].mean(),
+        2
+    )
+
+    high_performers = len(
+        data[data["KPI Score"] >= 80]
+    )
+
+    low_performers = len(
+        data[data["KPI Score"] < 50]
+    )
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Employees", total_employees)
+
+    with col2:
+        st.metric(
+            "Average KPI Score",
+            f"{avg_score}%"
         )
 
-        st.subheader("Results")
+    with col3:
+        st.metric(
+            "High Performers",
+            high_performers
+        )
 
-        if attr_pred == 1:
-            st.error("⚠️ High Attrition Risk")
-        else:
-            st.success("Low Attrition Risk")
+    with col4:
+        st.metric(
+            "Low Performers",
+            low_performers
+        )
 
-        st.info(f"⭐ Performance Rating: {perf_pred}")
-        st.metric("📊 KPI Score", round(kpi_score, 2))
+    # =====================================================
+    # FILTERS
+    # =====================================================
 
-# ============================
-# ABOUT
-# ============================
-elif page == "About":
-    st.title("ℹ️ About")
-    st.write("HR KPI Machine Learning Dashboard")
-    st.write("Predicts Attrition, Performance Rating, and KPI Score")
+    st.sidebar.header("🔍 Filters")
 
-# ============================
-# PROFILE
-# ============================
-elif page == "Profile":
-    st.title("👤 Profile")
-    st.write("Vivian Iyaha")
-    st.write("HR Analytics | Machine Learning | AI Enthusiast")
+    departments = st.sidebar.multiselect(
+        "Select Department",
+        options=data["Department"].unique(),
+        default=data["Department"].unique()
+    )
+
+    months = st.sidebar.multiselect(
+        "Select Month",
+        options=data["Month"].unique(),
+        default=data["Month"].unique()
+    )
+
+    filtered_data = data[
+        (data["Department"].isin(departments)) &
+        (data["Month"].isin(months))
+    ]
+
+    # High Performers
+    st.subheader("🏆 High Performers")
+
+    high_df = filtered_data[
+        filtered_data["KPI Score"] >= 80
+    ]
+
+    st.dataframe(
+        high_df[
+            [
+                "Name",
+                "Department",
+                "Designation",
+                "KPI Score",
+                "Week",
+                "Month"
+            ]
+        ],
+        use_container_width=True
+    )
+
+    # Low Performers
+    st.subheader("⚠️ Low Performers")
+
+    low_df = filtered_data[
+        filtered_data["KPI Score"] < 50
+    ]
+
+    st.dataframe(
+        low_df[
+            [
+                "Name",
+                "Department",
+                "Designation",
+                "KPI Score",
+                "Week",
+                "Month"
+            ]
+        ],
+        use_container_width=True
+    )
+
+    # Department Performance
+    st.subheader("🏢 Department Performance")
+
+    dept_df = (
+        filtered_data
+        .groupby("Department")["KPI Score"]
+        .mean()
+        .reset_index()
+    )
+
+    dept_df["KPI Score"] = dept_df[
+        "KPI Score"
+    ].round(2)
+
+    fig_dept = px.bar(
+        dept_df,
+        x="Department",
+        y="KPI Score",
+        color="KPI Score",
+        text="KPI Score",
+        color_continuous_scale="Blues",
+        title="Average KPI Score by Department"
+    )
+
+    st.plotly_chart(
+        fig_dept,
+        use_container_width=True
+    )
+
+    # Performance Distribution
+    st.subheader("📊 Performance Distribution")
+
+    pie_fig = px.pie(
+        filtered_data,
+        names="Performance Category",
+        title="Employee Performance Distribution"
+    )
+
+    st.plotly_chart(
+        pie_fig,
+        use_container_width=True
+    )
+
+    # All KPI Data
+    st.subheader("📝 All KPI Records")
+
+    st.dataframe(
+        filtered_data,
+        use_container_width=True
+    )
+
+    # Download Report
+    report_csv = filtered_data.to_csv(
+        index=False
+    ).encode("utf-8")
+
+    st.download_button(
+        label="⬇️ Download KPI Report",
+        data=report_csv,
+        file_name="employee_kpi_report.csv",
+        mime="text/csv"
+    )
+
+else:
+    st.info(
+        "Click 'Open weeklyKpi.csv' to begin."
+    )
+
+# =========================================================
+# TEMPLATE DOWNLOAD
+# =========================================================
+
+st.markdown("---")
+
+st.subheader("📥 Download KPI Template")
+
+template_df = pd.DataFrame(
+    columns=required_columns
+)
+
+template_csv = template_df.to_csv(
+    index=False
+).encode("utf-8")
+
+st.download_button(
+    label="Download CSV Template",
+    data=template_csv,
+    file_name="kpi_template.csv",
+    mime="text/csv"
+)
