@@ -60,7 +60,6 @@ st.markdown("Professional KPI monitoring and analytics system")
 BASE_DIR = "performance_data"
 Path(BASE_DIR).mkdir(exist_ok=True)
 
-# ✅ FIX: DEFINE DATA FOLDER (THIS WAS MISSING)
 data_folder = "weekly_report"
 Path(data_folder).mkdir(exist_ok=True)
 
@@ -115,21 +114,6 @@ def performance_category(score):
         return "Average Performer"
 
 
-def save_uploaded_file(df, filename):
-    now = datetime.now()
-
-    month_folder = now.strftime("%Y-%m")
-    month_path = os.path.join(BASE_DIR, month_folder)
-
-    Path(month_path).mkdir(parents=True, exist_ok=True)
-
-    save_path = os.path.join(month_path, filename)
-
-    df.to_csv(save_path, index=False)
-
-    return save_path
-
-
 def load_all_data():
     all_data = []
 
@@ -137,7 +121,6 @@ def load_all_data():
         for file in files:
             if file.endswith(".csv"):
                 file_path = os.path.join(root, file)
-
                 temp_df = pd.read_csv(file_path)
                 all_data.append(temp_df)
 
@@ -147,48 +130,39 @@ def load_all_data():
     return pd.DataFrame()
 
 # =========================================================
-# SIDEBAR - LOAD FILE
+# SIDEBAR
 # =========================================================
 
 st.sidebar.header("📁 Weekly KPI Report")
 
-# 🔥 FIXED LINE NOW WORKS BECAUSE data_folder EXISTS
 csv_files = [f for f in os.listdir(data_folder) if f.endswith(".csv")]
 
 if csv_files:
 
-    selected_file = st.sidebar.selectbox(
-        "Select Weekly KPI File",
-        csv_files
-    )
-
+    selected_file = st.sidebar.selectbox("Select Weekly KPI File", csv_files)
     load_file = st.sidebar.button("Open Selected File")
 
     if load_file:
-        try:
-            file_path = os.path.join(data_folder, selected_file)
-            df = pd.read_csv(file_path)
+        file_path = os.path.join(data_folder, selected_file)
+        df = pd.read_csv(file_path)
 
-            missing_cols = [col for col in required_columns if col not in df.columns]
+        missing_cols = [col for col in required_columns if col not in df.columns]
 
-            if missing_cols:
-                st.error(f"Missing columns: {missing_cols}")
+        if not missing_cols:
 
-            else:
-                now = datetime.now()
+            now = datetime.now()
+            df["Month"] = now.strftime("%Y-%m")
+            df["Week"] = selected_file
+            df["Upload Date"] = now.strftime("%Y-%m-%d")
 
-                df["Month"] = now.strftime("%Y-%m")
-                df["Week"] = selected_file
-                df["Upload Date"] = now.strftime("%Y-%m-%d")
+            df["KPI Score"] = df.apply(calculate_score, axis=1)
+            df["Performance Category"] = df["KPI Score"].apply(performance_category)
 
-                df["KPI Score"] = df.apply(calculate_score, axis=1)
-                df["Performance Category"] = df["KPI Score"].apply(performance_category)
+            st.success("File loaded successfully")
+            st.dataframe(df)
 
-                st.success(f"{selected_file} loaded successfully!")
-                st.dataframe(df)
-
-        except Exception as e:
-            st.error(f"Error loading file: {e}")
+        else:
+            st.error(f"Missing columns: {missing_cols}")
 
 else:
     st.sidebar.warning("No CSV files found in weekly_report folder.")
@@ -242,6 +216,40 @@ if not data.empty:
 
     if "Month" in filtered_data.columns:
         filtered_data = filtered_data[filtered_data["Month"].isin(months)]
+
+    # =========================================================
+    # 🆕 ADDED VISUALIZATION SECTION
+    # =========================================================
+
+    st.subheader("🏆 Top 10 Performers")
+
+    top_df = filtered_data.sort_values("KPI Score", ascending=False).head(10)
+
+    fig_top = px.bar(
+        top_df,
+        x="Name",
+        y="KPI Score",
+        text="KPI Score",
+        title="Top 10 Employees"
+    )
+
+    st.plotly_chart(fig_top, use_container_width=True)
+
+    st.subheader("⚠️ Bottom 10 Performers")
+
+    bottom_df = filtered_data.sort_values("KPI Score", ascending=True).head(10)
+
+    fig_bottom = px.bar(
+        bottom_df,
+        x="Name",
+        y="KPI Score",
+        text="KPI Score",
+        title="Bottom 10 Employees"
+    )
+
+    st.plotly_chart(fig_bottom, use_container_width=True)
+
+    # =========================================================
 
     st.subheader("🏆 High Performers")
     st.dataframe(filtered_data[filtered_data["KPI Score"] >= 80], use_container_width=True)
