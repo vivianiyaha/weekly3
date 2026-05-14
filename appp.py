@@ -154,14 +154,19 @@ load_file = st.sidebar.button("Open weeklyKpi.csv")
 # FILE LOAD PROCESSING
 # =========================================================
 
-if load_file:
+csv_files = [f for f in os.listdir(data_folder) if f.endswith(".csv")]
 
-    try:
-        file_path = "weeklyKpi.csv"
+if csv_files:
 
-        if os.path.exists(file_path):
+    selected_file = st.sidebar.selectbox("Select Weekly KPI File", csv_files)
+    load_file = st.sidebar.button("Open Selected File")
 
-            df = pd.read_csv(file_path)
+    if load_file:
+        file_path = os.path.join(data_folder, selected_file)
+        df = pd.read_csv(file_path)
+
+        missing_cols = [col for col in required_columns if col not in df.columns]
+
 
             # Validate columns
             missing_cols = [
