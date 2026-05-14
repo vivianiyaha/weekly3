@@ -22,7 +22,6 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-
 .main {
     background-color: #f8f9fc;
 }
@@ -42,7 +41,6 @@ div[data-testid="metric-container"] {
     padding: 15px;
     border-radius: 10px;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -59,6 +57,10 @@ st.markdown("Professional KPI monitoring and analytics system")
 
 BASE_DIR = "performance_data"
 Path(BASE_DIR).mkdir(exist_ok=True)
+
+# Folder for weekly files
+data_folder = "weekly_report"
+Path(data_folder).mkdir(exist_ok=True)
 
 # =========================================================
 # REQUIRED COLUMNS
@@ -86,16 +88,14 @@ def calculate_score(row):
     score = 0
     total = 3
 
-    kpi1 = str(row["Was KPI 1 completed?"]).strip().lower()
-    kpi2 = str(row["Was KPI 2 completed?"]).strip().lower()
-    kpi3 = str(row["Was KPI 3 completed?"]).strip().lower()
+    kpi1 = str(row.get("Was KPI 1 completed?", "")).strip().lower()
+    kpi2 = str(row.get("Was KPI 2 completed?", "")).strip().lower()
+    kpi3 = str(row.get("Was KPI 3 completed?", "")).strip().lower()
 
     if kpi1 in ["yes", "true", "completed"]:
         score += 1
-
     if kpi2 in ["yes", "true", "completed"]:
         score += 1
-
     if kpi3 in ["yes", "true", "completed"]:
         score += 1
 
@@ -111,21 +111,6 @@ def performance_category(score):
         return "Average Performer"
 
 
-def save_uploaded_file(df, filename):
-    now = datetime.now()
-
-    month_folder = now.strftime("%Y-%m")
-    month_path = os.path.join(BASE_DIR, month_folder)
-
-    Path(month_path).mkdir(parents=True, exist_ok=True)
-
-    save_path = os.path.join(month_path, filename)
-
-    df.to_csv(save_path, index=False)
-
-    return save_path
-
-
 def load_all_data():
     all_data = []
 
@@ -133,7 +118,6 @@ def load_all_data():
         for file in files:
             if file.endswith(".csv"):
                 file_path = os.path.join(root, file)
-
                 temp_df = pd.read_csv(file_path)
                 all_data.append(temp_df)
 
@@ -143,47 +127,48 @@ def load_all_data():
     return pd.DataFrame()
 
 # =========================================================
-# SIDEBAR
+# SIDEBAR - LOAD FILE
 # =========================================================
 
 st.sidebar.header("📁 Weekly KPI Report")
 
-# Folder where CSV files are stored
-data_folder = "weekly_report"
-
-# Get all CSV files
 csv_files = [f for f in os.listdir(data_folder) if f.endswith(".csv")]
 
 if csv_files:
 
-    # Dropdown select button
     selected_file = st.sidebar.selectbox(
         "Select Weekly KPI File",
         csv_files
     )
 
-    # Load selected file button
     load_file = st.sidebar.button("Open Selected File")
-
-    # =========================================================
-    # FILE LOAD PROCESSING
-    # =========================================================
 
     if load_file:
         try:
             file_path = os.path.join(data_folder, selected_file)
-
             df = pd.read_csv(file_path)
 
             # Validate columns
-            missing_cols = [
-                col for col in required_columns
-                if col not in df.columns
-            ]
+            missing_cols = [col for col in required_columns if col not in df.columns]
 
             if missing_cols:
                 st.error(f"Missing columns: {missing_cols}")
+
             else:
+                # =========================================================
+                # YOUR ADDED PROCESSING BLOCK (FIXED & INTEGRATED)
+                # =========================================================
+
+                now = datetime.now()
+
+                df["Month"] = now.strftime("%Y-%m")
+                df["Week"] = selected_file
+                df["Upload Date"] = now.strftime("%Y-%m-%d")
+
+                df["KPI Score"] = df.apply(calculate_score, axis=1)
+
+                df["Performance Category"] = df["KPI Score"].apply(performance_category)
+
                 st.success(f"{selected_file} loaded successfully!")
                 st.dataframe(df)
 
@@ -191,12 +176,18 @@ if csv_files:
             st.error(f"Error loading file: {e}")
 
 else:
-    st.sidebar.warning("No CSV files found.")
+    st.sidebar.warning("No CSV files found in weekly_report folder.")
+
 # =========================================================
-# LOAD ALL SAVED DATA
+# LOAD ALL DATA
 # =========================================================
 
 data = load_all_data()
+
+# If KPI Score not already in saved data, compute it
+if not data.empty and "KPI Score" not in data.columns:
+    data["KPI Score"] = data.apply(calculate_score, axis=1)
+    data["Performance Category"] = data["KPI Score"].apply(performance_category)
 
 # =========================================================
 # DASHBOARD
@@ -207,44 +198,17 @@ if not data.empty:
     st.markdown("---")
     st.header("📈 Manager Dashboard")
 
-    # Metrics
     total_employees = data["Name"].nunique()
-
-    avg_score = round(
-        data["KPI Score"].mean(),
-        2
-    )
-
-    high_performers = len(
-        data[data["KPI Score"] >= 80]
-    )
-
-    low_performers = len(
-        data[data["KPI Score"] < 50]
-    )
+    avg_score = round(data["KPI Score"].mean(), 2)
+    high_performers = len(data[data["KPI Score"] >= 80])
+    low_performers = len(data[data["KPI Score"] < 50])
 
     col1, col2, col3, col4 = st.columns(4)
 
-    with col1:
-        st.metric("Employees", total_employees)
-
-    with col2:
-        st.metric(
-            "Average KPI Score",
-            f"{avg_score}%"
-        )
-
-    with col3:
-        st.metric(
-            "High Performers",
-            high_performers
-        )
-
-    with col4:
-        st.metric(
-            "Low Performers",
-            low_performers
-        )
+    col1.metric("Employees", total_employees)
+    col2.metric("Average KPI Score", f"{avg_score}%")
+    col3.metric("High Performers", high_performers)
+    col4.metric("Low Performers", low_performers)
 
     # =====================================================
     # FILTERS
@@ -260,144 +224,92 @@ if not data.empty:
 
     months = st.sidebar.multiselect(
         "Select Month",
-        options=data["Month"].unique(),
-        default=data["Month"].unique()
+        options=data["Month"].unique() if "Month" in data.columns else [],
+        default=data["Month"].unique() if "Month" in data.columns else []
     )
 
     filtered_data = data[
-        (data["Department"].isin(departments)) &
-        (data["Month"].isin(months))
+        (data["Department"].isin(departments))
     ]
 
-    # High Performers
+    if "Month" in filtered_data.columns:
+        filtered_data = filtered_data[filtered_data["Month"].isin(months)]
+
+    # =====================================================
+    # HIGH PERFORMERS
+    # =====================================================
+
     st.subheader("🏆 High Performers")
 
-    high_df = filtered_data[
-        filtered_data["KPI Score"] >= 80
-    ]
-
     st.dataframe(
-        high_df[
-            [
-                "Name",
-                "Department",
-                "Designation",
-                "KPI Score",
-                "Week",
-                "Month"
-            ]
-        ],
+        filtered_data[filtered_data["KPI Score"] >= 80],
         use_container_width=True
     )
 
-    # Low Performers
+    # =====================================================
+    # LOW PERFORMERS
+    # =====================================================
+
     st.subheader("⚠️ Low Performers")
 
-    low_df = filtered_data[
-        filtered_data["KPI Score"] < 50
-    ]
-
     st.dataframe(
-        low_df[
-            [
-                "Name",
-                "Department",
-                "Designation",
-                "KPI Score",
-                "Week",
-                "Month"
-            ]
-        ],
+        filtered_data[filtered_data["KPI Score"] < 50],
         use_container_width=True
     )
 
-    # Department Performance
+    # =====================================================
+    # DEPARTMENT CHART
+    # =====================================================
+
     st.subheader("🏢 Department Performance")
 
-    dept_df = (
-        filtered_data
-        .groupby("Department")["KPI Score"]
-        .mean()
-        .reset_index()
-    )
+    dept_df = filtered_data.groupby("Department")["KPI Score"].mean().reset_index()
+    dept_df["KPI Score"] = dept_df["KPI Score"].round(2)
 
-    dept_df["KPI Score"] = dept_df[
-        "KPI Score"
-    ].round(2)
+    fig = px.bar(dept_df, x="Department", y="KPI Score", text="KPI Score")
+    st.plotly_chart(fig, use_container_width=True)
 
-    fig_dept = px.bar(
-        dept_df,
-        x="Department",
-        y="KPI Score",
-        color="KPI Score",
-        text="KPI Score",
-        color_continuous_scale="Blues",
-        title="Average KPI Score by Department"
-    )
+    # =====================================================
+    # PIE CHART
+    # =====================================================
 
-    st.plotly_chart(
-        fig_dept,
-        use_container_width=True
-    )
-
-    # Performance Distribution
     st.subheader("📊 Performance Distribution")
 
-    pie_fig = px.pie(
-        filtered_data,
-        names="Performance Category",
-        title="Employee Performance Distribution"
-    )
+    pie_fig = px.pie(filtered_data, names="Performance Category")
+    st.plotly_chart(pie_fig, use_container_width=True)
 
-    st.plotly_chart(
-        pie_fig,
-        use_container_width=True
-    )
+    # =====================================================
+    # TABLE
+    # =====================================================
 
-    # All KPI Data
     st.subheader("📝 All KPI Records")
+    st.dataframe(filtered_data, use_container_width=True)
 
-    st.dataframe(
-        filtered_data,
-        use_container_width=True
-    )
-
-    # Download Report
-    report_csv = filtered_data.to_csv(
-        index=False
-    ).encode("utf-8")
+    # Download
+    csv = filtered_data.to_csv(index=False).encode("utf-8")
 
     st.download_button(
-        label="⬇️ Download KPI Report",
-        data=report_csv,
-        file_name="employee_kpi_report.csv",
+        "⬇️ Download Report",
+        data=csv,
+        file_name="kpi_report.csv",
         mime="text/csv"
     )
 
 else:
-    st.info(
-        "Click 'Open weeklyKpi.csv' to begin."
-    )
+    st.info("Click 'Open Selected File' to load KPI data.")
 
 # =========================================================
 # TEMPLATE DOWNLOAD
 # =========================================================
 
 st.markdown("---")
-
 st.subheader("📥 Download KPI Template")
 
-template_df = pd.DataFrame(
-    columns=required_columns
-)
-
-template_csv = template_df.to_csv(
-    index=False
-).encode("utf-8")
+template_df = pd.DataFrame(columns=required_columns)
 
 st.download_button(
-    label="Download CSV Template",
-    data=template_csv,
+    "Download CSV Template",
+    template_df.to_csv(index=False).encode("utf-8"),
     file_name="kpi_template.csv",
     mime="text/csv"
 )
