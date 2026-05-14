@@ -274,9 +274,6 @@ if not data.empty:
         mime="text/csv"
     )
 
-else:
-    st.info("Click 'Open Selected File' to load KPI data.")
-
 # =========================================================
 # TEMPLATE DOWNLOAD
 # =========================================================
