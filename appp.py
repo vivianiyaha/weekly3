@@ -162,59 +162,59 @@ if csv_files:
     load_file = st.sidebar.button("Open Selected File")
 
     if load_file:
+
         file_path = os.path.join(data_folder, selected_file)
         df = pd.read_csv(file_path)
 
         missing_cols = [col for col in required_columns if col not in df.columns]
 
+        # Validate columns
+        missing_cols = [
+            col for col in required_columns
+            if col not in df.columns
+        ]
 
-            # Validate columns
-            missing_cols = [
-                col for col in required_columns
-                if col not in df.columns
-            ]
-
-            if missing_cols:
-                st.error(f"Missing columns: {missing_cols}")
-
-            else:
-                now = datetime.now()
-
-                # Add date columns
-                df["Month"] = now.strftime("%Y-%m")
-                df["Week"] = "weeklyKpi"
-                df["Upload Date"] = now.strftime("%Y-%m-%d")
-
-                # KPI Score
-                df["KPI Score"] = df.apply(
-                    calculate_score,
-                    axis=1
-                )
-
-                # Performance Category
-                df["Performance Category"] = df[
-                    "KPI Score"
-                ].apply(performance_category)
-
-                # Save file
-                save_path = save_uploaded_file(
-                    df,
-                    "weeklyKpi.csv"
-                )
-
-                st.success(
-                    "weeklyKpi.csv loaded successfully ✅"
-                )
-
-                st.info(f"Saved to: {save_path}")
-
-                st.dataframe(
-                    df,
-                    use_container_width=True
-                )
+        if missing_cols:
+            st.error(f"Missing columns: {missing_cols}")
 
         else:
-            st.error("weeklyKpi.csv file not found.")
+            now = datetime.now()
+
+            # Add date columns
+            df["Month"] = now.strftime("%Y-%m")
+            df["Week"] = "weeklyKpi"
+            df["Upload Date"] = now.strftime("%Y-%m-%d")
+
+            # KPI Score
+            df["KPI Score"] = df.apply(
+                calculate_score,
+                axis=1
+            )
+
+            # Performance Category
+            df["Performance Category"] = df[
+                "KPI Score"
+            ].apply(performance_category)
+
+            # Save file
+            save_path = save_uploaded_file(
+                df,
+                "weeklyKpi.csv"
+            )
+
+            st.success(
+                "weeklyKpi.csv loaded successfully ✅"
+            )
+
+            st.info(f"Saved to: {save_path}")
+
+            st.dataframe(
+                df,
+                use_container_width=True
+            )
+
+    else:
+        st.error("weeklyKpi.csv file not found.")
 
     except Exception as e:
         st.error(f"Error: {e}")
@@ -234,7 +234,6 @@ if not data.empty:
     st.markdown("---")
     st.header("📈 Manager Dashboard")
 
-    # Metrics
     total_employees = data["Name"].nunique()
 
     avg_score = round(
@@ -273,10 +272,6 @@ if not data.empty:
             low_performers
         )
 
-    # =====================================================
-    # FILTERS
-    # =====================================================
-
     st.sidebar.header("🔍 Filters")
 
     departments = st.sidebar.multiselect(
@@ -296,7 +291,6 @@ if not data.empty:
         (data["Month"].isin(months))
     ]
 
-    # High Performers
     st.subheader("🏆 High Performers")
 
     high_df = filtered_data[
@@ -317,7 +311,6 @@ if not data.empty:
         use_container_width=True
     )
 
-    # Low Performers
     st.subheader("⚠️ Low Performers")
 
     low_df = filtered_data[
@@ -338,7 +331,6 @@ if not data.empty:
         use_container_width=True
     )
 
-    # Department Performance
     st.subheader("🏢 Department Performance")
 
     dept_df = (
@@ -367,7 +359,6 @@ if not data.empty:
         use_container_width=True
     )
 
-    # Performance Distribution
     st.subheader("📊 Performance Distribution")
 
     pie_fig = px.pie(
@@ -381,7 +372,6 @@ if not data.empty:
         use_container_width=True
     )
 
-    # All KPI Data
     st.subheader("📝 All KPI Records")
 
     st.dataframe(
@@ -389,7 +379,6 @@ if not data.empty:
         use_container_width=True
     )
 
-    # Download Report
     report_csv = filtered_data.to_csv(
         index=False
     ).encode("utf-8")
