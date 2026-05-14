@@ -154,6 +154,10 @@ load_file = st.sidebar.button("Open weeklyKpi.csv")
 # FILE LOAD PROCESSING
 # =========================================================
 
+# =========================================================
+# FILE LOAD PROCESSING
+# =========================================================
+
 csv_files = [f for f in os.listdir(data_folder) if f.endswith(".csv")]
 
 if csv_files:
@@ -163,59 +167,56 @@ if csv_files:
 
     if load_file:
 
-        file_path = os.path.join(data_folder, selected_file)
-        df = pd.read_csv(file_path)
+        try:
+            file_path = os.path.join(data_folder, selected_file)
+            df = pd.read_csv(file_path)
 
-        missing_cols = [col for col in required_columns if col not in df.columns]
+            missing_cols = [
+                col for col in required_columns
+                if col not in df.columns
+            ]
 
-        # Validate columns
-        missing_cols = [
-            col for col in required_columns
-            if col not in df.columns
-        ]
+            if missing_cols:
+                st.error(f"Missing columns: {missing_cols}")
 
-        if missing_cols:
-            st.error(f"Missing columns: {missing_cols}")
+            else:
+                now = datetime.now()
 
-        else:
-            now = datetime.now()
+                # Add date columns
+                df["Month"] = now.strftime("%Y-%m")
+                df["Week"] = "weeklyKpi"
+                df["Upload Date"] = now.strftime("%Y-%m-%d")
 
-            # Add date columns
-            df["Month"] = now.strftime("%Y-%m")
-            df["Week"] = "weeklyKpi"
-            df["Upload Date"] = now.strftime("%Y-%m-%d")
+                # KPI Score
+                df["KPI Score"] = df.apply(
+                    calculate_score,
+                    axis=1
+                )
 
-            # KPI Score
-            df["KPI Score"] = df.apply(
-                calculate_score,
-                axis=1
-            )
+                # Performance Category
+                df["Performance Category"] = df[
+                    "KPI Score"
+                ].apply(performance_category)
 
-            # Performance Category
-            df["Performance Category"] = df[
-                "KPI Score"
-            ].apply(performance_category)
+                # Save file
+                save_path = save_uploaded_file(
+                    df,
+                    "weeklyKpi.csv"
+                )
 
-            # Save file
-            save_path = save_uploaded_file(
-                df,
-                "weeklyKpi.csv"
-            )
+                st.success("weeklyKpi.csv loaded successfully ✅")
+                st.info(f"Saved to: {save_path}")
 
-            st.success(
-                "weeklyKpi.csv loaded successfully ✅"
-            )
+                st.dataframe(
+                    df,
+                    use_container_width=True
+                )
 
-            st.info(f"Saved to: {save_path}")
+        except Exception as e:
+            st.error(f"Error: {e}")
 
-            st.dataframe(
-                df,
-                use_container_width=True
-            )
-        else:
-            st.error("weeklyKpi.csv file not found.")
-except Exception as e:
-st.error(f"Error: {e}")
+else:
+    st.error("No CSV files found.")
 
 # =========================================================
 # LOAD ALL SAVED DATA
