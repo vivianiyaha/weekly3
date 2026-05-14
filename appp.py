@@ -212,11 +212,10 @@ if csv_files:
                 df,
                 use_container_width=True
             )
-
-    else:
-        st.error("weeklyKpi.csv file not found.")
+        else:
+            st.error("weeklyKpi.csv file not found.")
 except Exception as e:
-        st.error(f"Error: {e}")
+st.error(f"Error: {e}")
 
 # =========================================================
 # LOAD ALL SAVED DATA
