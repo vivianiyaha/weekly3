@@ -148,18 +148,30 @@ def load_all_data():
 
 st.sidebar.header("📁 Weekly KPI Report")
 
-load_file = st.sidebar.button("Open weeklyKpi.csv")
+# Folder where CSV files are stored
+data_folder = "."
 
-# =========================================================
-# FILE LOAD PROCESSING
-# =========================================================
+# Get all CSV files
+csv_files = [f for f in os.listdir(data_folder) if f.endswith(".csv")]
 
-if load_file:
+if csv_files:
 
-    try:
-        file_path = "weeklyKpi.csv"
+    # Dropdown select button
+    selected_file = st.sidebar.selectbox(
+        "Select Weekly KPI File",
+        csv_files
+    )
 
-        if os.path.exists(file_path):
+    # Load selected file button
+    load_file = st.sidebar.button("Open Selected File")
+
+    # =========================================================
+    # FILE LOAD PROCESSING
+    # =========================================================
+
+    if load_file:
+        try:
+            file_path = os.path.join(data_folder, selected_file)
 
             df = pd.read_csv(file_path)
 
@@ -171,49 +183,15 @@ if load_file:
 
             if missing_cols:
                 st.error(f"Missing columns: {missing_cols}")
-
             else:
-                now = datetime.now()
+                st.success(f"{selected_file} loaded successfully!")
+                st.dataframe(df)
 
-                # Add date columns
-                df["Month"] = now.strftime("%Y-%m")
-                df["Week"] = "weeklyKpi"
-                df["Upload Date"] = now.strftime("%Y-%m-%d")
+        except Exception as e:
+            st.error(f"Error loading file: {e}")
 
-                # KPI Score
-                df["KPI Score"] = df.apply(
-                    calculate_score,
-                    axis=1
-                )
-
-                # Performance Category
-                df["Performance Category"] = df[
-                    "KPI Score"
-                ].apply(performance_category)
-
-                # Save file
-                save_path = save_uploaded_file(
-                    df,
-                    "weeklyKpi.csv"
-                )
-
-                st.success(
-                    "weeklyKpi.csv loaded successfully ✅"
-                )
-
-                st.info(f"Saved to: {save_path}")
-
-                st.dataframe(
-                    df,
-                    use_container_width=True
-                )
-
-        else:
-            st.error("weeklyKpi.csv file not found.")
-
-    except Exception as e:
-        st.error(f"Error: {e}")
-
+else:
+    st.sidebar.warning("No CSV files found.")
 # =========================================================
 # LOAD ALL SAVED DATA
 # =========================================================
