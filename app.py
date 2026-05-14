@@ -149,7 +149,7 @@ def load_all_data():
 st.sidebar.header("📁 Weekly KPI Report")
 
 # Folder where CSV files are stored
-data_folder = "."
+data_folder = "weekly_report"
 
 # Get all CSV files
 csv_files = [f for f in os.listdir(data_folder) if f.endswith(".csv")]
