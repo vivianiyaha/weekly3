@@ -22,6 +22,7 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+
 .main {
     background-color: #f8f9fc;
 }
@@ -41,6 +42,7 @@ div[data-testid="metric-container"] {
     padding: 15px;
     border-radius: 10px;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -57,10 +59,6 @@ st.markdown("Professional KPI monitoring and analytics system")
 
 BASE_DIR = "performance_data"
 Path(BASE_DIR).mkdir(exist_ok=True)
-
-# Folder for weekly files
-data_folder = "weekly_report"
-Path(data_folder).mkdir(exist_ok=True)
 
 # =========================================================
 # REQUIRED COLUMNS
@@ -88,14 +86,16 @@ def calculate_score(row):
     score = 0
     total = 3
 
-    kpi1 = str(row.get("Was KPI 1 completed?", "")).strip().lower()
-    kpi2 = str(row.get("Was KPI 2 completed?", "")).strip().lower()
-    kpi3 = str(row.get("Was KPI 3 completed?", "")).strip().lower()
+    kpi1 = str(row["Was KPI 1 completed?"]).strip().lower()
+    kpi2 = str(row["Was KPI 2 completed?"]).strip().lower()
+    kpi3 = str(row["Was KPI 3 completed?"]).strip().lower()
 
     if kpi1 in ["yes", "true", "completed"]:
         score += 1
+
     if kpi2 in ["yes", "true", "completed"]:
         score += 1
+
     if kpi3 in ["yes", "true", "completed"]:
         score += 1
 
@@ -111,6 +111,21 @@ def performance_category(score):
         return "Average Performer"
 
 
+def save_uploaded_file(df, filename):
+    now = datetime.now()
+
+    month_folder = now.strftime("%Y-%m")
+    month_path = os.path.join(BASE_DIR, month_folder)
+
+    Path(month_path).mkdir(parents=True, exist_ok=True)
+
+    save_path = os.path.join(month_path, filename)
+
+    df.to_csv(save_path, index=False)
+
+    return save_path
+
+
 def load_all_data():
     all_data = []
 
@@ -118,6 +133,7 @@ def load_all_data():
         for file in files:
             if file.endswith(".csv"):
                 file_path = os.path.join(root, file)
+
                 temp_df = pd.read_csv(file_path)
                 all_data.append(temp_df)
 
