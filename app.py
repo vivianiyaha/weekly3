@@ -60,6 +60,10 @@ st.markdown("Professional KPI monitoring and analytics system")
 BASE_DIR = "performance_data"
 Path(BASE_DIR).mkdir(exist_ok=True)
 
+# ✅ FIX: DEFINE DATA FOLDER (THIS WAS MISSING)
+data_folder = "weekly_report"
+Path(data_folder).mkdir(exist_ok=True)
+
 # =========================================================
 # REQUIRED COLUMNS
 # =========================================================
@@ -148,6 +152,7 @@ def load_all_data():
 
 st.sidebar.header("📁 Weekly KPI Report")
 
+# 🔥 FIXED LINE NOW WORKS BECAUSE data_folder EXISTS
 csv_files = [f for f in os.listdir(data_folder) if f.endswith(".csv")]
 
 if csv_files:
@@ -164,17 +169,12 @@ if csv_files:
             file_path = os.path.join(data_folder, selected_file)
             df = pd.read_csv(file_path)
 
-            # Validate columns
             missing_cols = [col for col in required_columns if col not in df.columns]
 
             if missing_cols:
                 st.error(f"Missing columns: {missing_cols}")
 
             else:
-                # =========================================================
-                # YOUR ADDED PROCESSING BLOCK (FIXED & INTEGRATED)
-                # =========================================================
-
                 now = datetime.now()
 
                 df["Month"] = now.strftime("%Y-%m")
@@ -182,7 +182,6 @@ if csv_files:
                 df["Upload Date"] = now.strftime("%Y-%m-%d")
 
                 df["KPI Score"] = df.apply(calculate_score, axis=1)
-
                 df["Performance Category"] = df["KPI Score"].apply(performance_category)
 
                 st.success(f"{selected_file} loaded successfully!")
@@ -200,7 +199,6 @@ else:
 
 data = load_all_data()
 
-# If KPI Score not already in saved data, compute it
 if not data.empty and "KPI Score" not in data.columns:
     data["KPI Score"] = data.apply(calculate_score, axis=1)
     data["Performance Category"] = data["KPI Score"].apply(performance_category)
@@ -226,10 +224,6 @@ if not data.empty:
     col3.metric("High Performers", high_performers)
     col4.metric("Low Performers", low_performers)
 
-    # =====================================================
-    # FILTERS
-    # =====================================================
-
     st.sidebar.header("🔍 Filters")
 
     departments = st.sidebar.multiselect(
@@ -244,38 +238,16 @@ if not data.empty:
         default=data["Month"].unique() if "Month" in data.columns else []
     )
 
-    filtered_data = data[
-        (data["Department"].isin(departments))
-    ]
+    filtered_data = data[data["Department"].isin(departments)]
 
     if "Month" in filtered_data.columns:
         filtered_data = filtered_data[filtered_data["Month"].isin(months)]
 
-    # =====================================================
-    # HIGH PERFORMERS
-    # =====================================================
-
     st.subheader("🏆 High Performers")
-
-    st.dataframe(
-        filtered_data[filtered_data["KPI Score"] >= 80],
-        use_container_width=True
-    )
-
-    # =====================================================
-    # LOW PERFORMERS
-    # =====================================================
+    st.dataframe(filtered_data[filtered_data["KPI Score"] >= 80], use_container_width=True)
 
     st.subheader("⚠️ Low Performers")
-
-    st.dataframe(
-        filtered_data[filtered_data["KPI Score"] < 50],
-        use_container_width=True
-    )
-
-    # =====================================================
-    # DEPARTMENT CHART
-    # =====================================================
+    st.dataframe(filtered_data[filtered_data["KPI Score"] < 50], use_container_width=True)
 
     st.subheader("🏢 Department Performance")
 
@@ -285,23 +257,14 @@ if not data.empty:
     fig = px.bar(dept_df, x="Department", y="KPI Score", text="KPI Score")
     st.plotly_chart(fig, use_container_width=True)
 
-    # =====================================================
-    # PIE CHART
-    # =====================================================
-
     st.subheader("📊 Performance Distribution")
 
     pie_fig = px.pie(filtered_data, names="Performance Category")
     st.plotly_chart(pie_fig, use_container_width=True)
 
-    # =====================================================
-    # TABLE
-    # =====================================================
-
     st.subheader("📝 All KPI Records")
     st.dataframe(filtered_data, use_container_width=True)
 
-    # Download
     csv = filtered_data.to_csv(index=False).encode("utf-8")
 
     st.download_button(
