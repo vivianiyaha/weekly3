@@ -215,8 +215,7 @@ if csv_files:
 
     else:
         st.error("weeklyKpi.csv file not found.")
-
-    except Exception as e:
+except Exception as e:
         st.error(f"Error: {e}")
 
 # =========================================================
