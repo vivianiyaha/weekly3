@@ -59,7 +59,8 @@ st.markdown("Professional KPI monitoring and analytics system")
 
 BASE_DIR = "performance_data"
 Path(BASE_DIR).mkdir(exist_ok=True)
-
+data_folder = "weekly_report"
+Path(data_folder).mkdir(exist_ok=True)
 # =========================================================
 # REQUIRED COLUMNS
 # =========================================================
