@@ -206,7 +206,7 @@ if csv_files:
                     "weeklyKpi.csv"
                 )
 
-                st.success("weeklyKpi.csv loaded successfully ✅")
+                st.success("File loaded successfully ✅")
                 st.info(f"Saved to: {save_path}")
 
                 st.dataframe(
