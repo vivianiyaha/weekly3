@@ -149,7 +149,7 @@ def load_all_data():
 
 st.sidebar.header("📁 Weekly KPI Report")
 
-load_file = st.sidebar.button("Open weeklyKpi.csv")
+
 
 # =========================================================
 # FILE LOAD PROCESSING
